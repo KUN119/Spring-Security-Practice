@@ -2,6 +2,8 @@ package com.example.testsecurity.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -17,13 +19,23 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    // 권한 계층 메서드:
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
+
+        hierarchy.setHierarchy("ADMIN > USER"); // ADMIN은 USER의 역할을 전부 수행할 수 있기 때문에
+
+        return hierarchy;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         //스프링 부트 3.1.X 버전부터는 람다형식 표현 필수: (auth) -> auth
         http.authorizeHttpRequests((auth) -> auth
                 .requestMatchers("/", "/login", "/join", "/joinProc").permitAll() // "/", "/login"페이지는 모든 사용자에게 오픈
                 .requestMatchers("/admin").hasRole("ADMIN") // /admin페이지는 ADMIN에게 오픈
-                .requestMatchers("/my/**").hasAnyRole("ADMIN", "USER") // /my의 모든 페이지는 ADMIN,USER에게 오픈
+                .requestMatchers("/my/**").hasAnyRole( "USER") // 권한계층 설정해줬기 때문에 USER만 적어놓아도 ADMIN도 권한 자동 부여
                 .anyRequest().authenticated() //anyRequest() 다른 요청들은, authenticated() 로그인된 유저에게 오픈
         );
 
